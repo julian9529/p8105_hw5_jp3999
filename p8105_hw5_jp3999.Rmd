@@ -1,0 +1,198 @@
+---
+title: "Homework 3"
+output: github_document
+---
+
+```{r}
+library(tidyverse)
+library(patchwork)
+```
+
+```{r setup}
+
+knitr::opts_chunk$set(
+  fig.width = 6,
+  fig.asp = .6,
+  out.width = "90%"
+)
+
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
+
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis"
+)
+
+scale_colour_discrete = scale_colour_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
+```
+
+## Problem 1 
+
+```{r}
+library(p8105.datasets)
+data("instacart")
+```
+
+The dataset contains information on Instacart Online Grocery Shopping in 2017. The variables `r variable.names(instacart)` are included in this data set. 
+This dataset contains `r nrow(instacart)` rows and `r ncol(instacart)` columns. 
+
+How many aisles, and which are most common items from? 
+
+```{r}
+instacart %>%
+count(aisle) %>%
+  arrange (desc(n))
+
+```
+
+There are 134 aisles in the data set and The most popular aisles are fresh vegetables, fresh fruits, and packaged vegetables fruits. 
+
+```{r}
+instacart %>%
+  count(aisle) %>% 
+  filter(n> 10000) %>% 
+  mutate(
+    aisle = factor(aisle),
+    aisle = fct_reorder(aisle, n)
+  ) %>%
+  ggplot(aes(x=aisle, y=n)) +
+  geom_point() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust =1))
+```
+
+Let's make a table
+
+```{r}
+instacart %>% 
+	filter(aisle %in% c("baking ingredients", "dog food care", "packaged vegetables fruits")) %>% 
+	group_by(aisle) %>% 
+	count(product_name) %>% 
+	mutate(rank = min_rank(desc(n))) %>% 
+	filter(rank < 4) %>% 
+	arrange(aisle, rank) %>% 
+	knitr::kable()
+```
+
+Apples vs Ice cream
+
+```{r}
+instacart %>% 
+	filter(product_name %in% c("Pink Lady Apples", "Coffee Ice Cream")) %>% 
+	group_by(product_name, order_dow) %>% 
+	summarize(mean_hour = mean(order_hour_of_day)) %>% 
+	pivot_wider(
+		names_from = order_dow,
+		values_from = mean_hour
+	)
+```
+
+
+
+## Problem 2
+
+```{r}
+accel_df = 
+read.csv("./data/accel_data.csv") %>%
+  janitor::clean_names() %>%
+    pivot_longer(
+      activity_1:activity_1440, 
+      names_to = "activity_minute", 
+      names_prefix = "activity_", 
+      values_to ="activity_count"
+      ) %>%
+  
+mutate (
+  day = factor(day), 
+  day = forcats::fct_relevel(day, c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"))) %>%
+    
+ mutate(weekend_weekday=day) %>%
+
+mutate(weekend_weekday = recode(weekend_weekday, Sunday = "Weekend", Saturday = "Weekend", Friday = "Weekday",Thursday = "Weekday", Wednesday = "Weekday", Tuesday = "Weekday", Monday = "Weekday")) %>%
+  mutate(
+     activity_minute = as.numeric(activity_minute))
+
+
+```
+
+
+This data set contains `r nrow(accel_df)` rows and `r ncol(accel_df)` columns. The variables contained are `r variable.names(accel_df)`
+
+```{r}
+accel_df  %>%
+  group_by(day, week) %>%
+  summarize (total_activity = sum(activity_count)) %>%
+  pivot_wider(
+    names_from = day, 
+    values_from = total_activity
+  )  %>%
+  	knitr::kable()
+
+
+```
+
+This table is a bit difficult to see if any trends are apparent, it seems that Saturday has some decreased activity. Friday and Sunday seem to have some increased activity! 
+
+The graph is showing the activity minutes by day of the week which are color coded. The trends aparent are that the activity minutes for all days of the week except Friday and Sunday are preety stable over time. Friday and Sunday are  are two days that have increased activity during the ~750 minute for Sunday and ~1200 for Friday. 
+
+```{r}
+accel_df  %>%
+  ggplot(aes(x= activity_minute, y = activity_count, group = day_id,color=day)) + 
+  geom_line(alpha = .2) +
+  geom_smooth(aes(group = day)) 
+
+```
+
+## Problem 3
+
+```{r}
+library(p8105.datasets)
+data("ny_noaa")
+```
+
+```{r}
+
+ny_noaa_df = ny_noaa%>%
+  separate(date, into = c("year",- "month", "day"), convert = TRUE) %>%
+  mutate(
+    tmin = as.numeric(tmin), 
+    prcp = as.numeric(prcp), 
+    tmax = as.numeric(tmax),
+    tmin = tmin / 10, 
+    tmax = tmax / 10, 
+    prcp = prcp / 10,
+    month = month.abb[as.factor(month)],
+   )
+```
+
+In this graph there appear to be many outliers in both Jan and July. The structures are a bit difficult to interpret for me. 
+
+```{r}
+ny_noaa_df %>%
+  filter(month == "Jan" |month == "Jul" ) %>%
+  group_by(id, year, month) %>%
+  summarize(mean_tmax = mean(tmax, na.rm = TRUE)) %>%
+  ggplot(aes(x = year, y = mean_tmax, group = id)) + 
+  geom_point() +
+  geom_path (alpha =.05, size = .3)+
+  facet_grid(.~month) +
+   theme(legend.position = "bottom")
+
+```
+
+```{r}
+tmin_max_df = 
+ggplot(ny_noaa_df, aes(x=tmin, y = tmax)) +
+geom_hex()
+
+snow_df = 
+  ny_noaa_df %>%
+  drop_na(snow) %>%
+  filter(snow > 0 & snow <100) %>%
+  ggplot(aes(x=year, y =snow, fill =year)) + 
+  geom_violin() +
+   theme(legend.position = "bottom")
+
+tmin_max_df + snow_df
+```
+
