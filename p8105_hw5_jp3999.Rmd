@@ -110,15 +110,36 @@ homicide_df =
 import one dataset 
 
 ```{r}
-data_1 = read_csv("./data/longitudinal_data/con_01.csv")
+data_1 = read_csv("./longitudinal_data/con_01.csv")
 ```
 
-```{r, error = TRUE}
+
+```{r}
+
 path_df = 
   tibble(
-    path = list.files("lda_data"),
+    path = list.files("longitudinal_data")
   ) %>% 
   mutate(
-    path = str_c("lda_data/", path),
-    data = map(.............))
-read_csv(path_df$path[[1]])
+    path = str_c("longitudinal_data/", path),
+data = map(path, read_csv)) 
+
+
+```
+
+```{r}
+path_df_unested= 
+path_df %>% 
+  mutate(
+   path =  str_remove_all(path, "longitudinal_data/"),
+path =  str_remove_all(path, ".csv")),
+    path = str_replace(path, "con", "control"), 
+     path = str_replace(path, "exp", "experiment"), 
+    path = str_replace (path, ".csv", ""))  %>% 
+  
+  unnest (data) %>% 
+  separate(path, into = c("arm", "id"))
+
+
+```
+
