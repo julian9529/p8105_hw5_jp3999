@@ -224,7 +224,7 @@ power = sum(p.value < 0.05)/n) %>%
   ggplot(aes(x = mu, y = power)) + geom_line() +geom_point() + labs(title = "proportion of times the null was rejected") 
 ```
 
-
+Shown above in the figure we see that as mu increases so does the power. This means that the probability of rejecting the null increases as the effect size increases. 
 
 
 
