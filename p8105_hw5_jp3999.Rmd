@@ -227,7 +227,7 @@ power = sum(p.value < 0.05)/n) %>%
 
 Shown above in the figure we see that as mu increases so does the power. This means that the probability of rejecting the null increases as the effect size increases. 
 
-
+### Plot1
 ```{r}
 plot_estimate = 
 data_plot1 %>%
@@ -239,7 +239,7 @@ data_plot1 %>%
     x= "true value of μ",
     y = "average estimate of μ̂"  )
 ```
-
+### Plot2
 ```{r}
 plot_avg_estimate = 
 data_plot1 %>%
@@ -253,7 +253,7 @@ data_plot1 %>%
     y = "average estimate of μ̂"  )
 ```
 
-Combine plots 
+### Combine plots 
 ```{r}
 plot_estimate + plot_avg_estimate 
 ```
