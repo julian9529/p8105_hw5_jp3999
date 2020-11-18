@@ -203,6 +203,8 @@ bind_rows()
 ```
 
 
+
+
 ```{r}
 data_plot1 = 
   bind_rows (output_ttest, .id = "mu")%>%
