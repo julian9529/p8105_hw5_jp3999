@@ -7,6 +7,8 @@ output: github_document
 library(tidyverse)
 library(patchwork)
 library(readxl)
+library(broom)
+
 ```
 
 ```{r setup}
@@ -132,14 +134,97 @@ path_df_unested=
 path_df %>% 
   mutate(
    path =  str_remove_all(path, "longitudinal_data/"),
-path =  str_remove_all(path, ".csv")),
+path =  str_remove_all(path, ".csv"),
     path = str_replace(path, "con", "control"), 
-     path = str_replace(path, "exp", "experiment"), 
-    path = str_replace (path, ".csv", ""))  %>% 
-  
+     path = str_replace(path, "exp", "experiment"))%>%
+   separate(path, into = c("control_arm", "subject_id"))%>% 
   unnest (data) %>% 
-  separate(path, into = c("arm", "id"))
+  
+  pivot_longer(week_1: week_8, 
+               names_to="week", 
+               values_to = "value") 
 
 
 ```
+Spaghetti plot
+```{r}
+
+
+ggplot(path_df_unested, aes(x=week, y=value, group = subject_id,color= subject_id)) +
+  geom_line() +
+  theme_bw() + facet_grid(.~control_arm) +
+  labs(title = "Observations on each subject over time")
+```
+
+### Comment on differences between groups. 
+
+Overall the experiment arm seems to have increasing positive values, on average, as the weeks progress. The Control arm on the other hand seems to have decreasing or stable values as the weeks progress, half of the observations seem to have negative values at some points. 
+
+
+## Problem 3
+
+
+```{r}
+ttest = function(n=30, mu = 0, sd = 5) {
+sample_data = tibble(
+x = rnorm(n=30, mean = mu, sd = 5),
+)
+sample_data %>%
+t.test() %>%
+  broom::tidy()
+}
+```
+
+Test ttest function 
+```{r}
+ttest_results = 
+  rerun(5000, ttest(30, 0, 5))%>%
+  bind_rows()
+```
+
+
+```{r}
+  mu = 
+  list ( 
+    "mu_0" = 0, 
+    "mu_1" = 1, 
+    "mu_2" = 2, 
+    "mu_3" = 3, 
+    "mu_4" = 4, 
+    "mu_5" = 5,
+    "mu_6" = 6 
+    )
+
+output_ttest = vector("list", length = 7)
+for (i in 1:7) {
+output_ttest[[i]] = rerun(5000, ttest(mu = mu[[i]])) %>%
+bind_rows() 
+}
+
+```
+
+
+```{r}
+data_plot1 = 
+  bind_rows (output_ttest, .id = "mu")%>%
+  select(mu, estimate, p.value) %>%
+mutate (decision = case_when(p.value < 0.05 ~ "Reject", p.value >=0.05 ~ "Fail to Reject")) %>%
+mutate(
+mu = recode (mu, "1" = "0", "2" = "1", "3" = "2", "4" = "3","5" = "4","6" = "5",
+"7" = "6")) 
+
+```
+
+```{r}
+data_plot1 %>%
+  group_by(mu) %>%
+  summarize(
+n = n(),
+power = sum(p.value < 0.05)/n) %>%
+  ggplot(aes(x = mu, y = power)) + geom_line() +geom_point() + labs(title = "proportion of times the null was rejected") 
+```
+
+
+
+
 
